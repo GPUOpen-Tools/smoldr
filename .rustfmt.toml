@@ -1,0 +1,20 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+version = "Two"
+edition = "2021"
+newline_style = "Unix"
+
+use_small_heuristics = "Max"
+use_try_shorthand = true
+
+# Unstable
+
+where_single_line = true
+comment_width = 100
+wrap_comments = true
+fn_params_layout = "Compressed"
+fn_single_line = true
+format_strings = true
+overflow_delimited_expr = true

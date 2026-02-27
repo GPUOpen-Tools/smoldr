@@ -1,0 +1,57 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+SOURCE csshader
+ByteAddressBuffer   inbuf  : register(t0); // SRV
+RWByteAddressBuffer outbuf : register(u0); // UAV
+cbuffer mycb : register (b0) {
+  float4 a[2];
+};
+
+[numthreads(32, 1, 1)]
+void CSMain(uint3 DTid : SV_DispatchThreadID) {
+  unsigned int idx = inbuf.Load<uint>(DTid.x * 4);
+  outbuf.Store<float>(DTid.x * 4, a[idx%2].y);
+}
+END
+
+OBJECT csobj csshader cs_6_2 CSMain
+
+BUFFER inbuf DATA_TYPE uint32 SIZE 64 SERIES_FROM 0 INC_BY 1
+BUFFER outbuf DATA_TYPE float SIZE 32 FILL 0
+
+ROOT default
+  TABLE UAV REGISTER 0 NUMBER 1 SPACE 0
+  TABLE SRV REGISTER 0 NUMBER 1 SPACE 0
+  ROOT_CONST NUMBER 8 REGISTER 0 SPACE 0
+END
+
+PIPELINE cspipe COMPUTE
+  ATTACH csobj
+  ROOT   default
+END
+
+VIEW inview inbuf AS SRV
+VIEW outview outbuf AS UAV
+
+DISPATCH cspipe
+  BIND 0 TABLE outview
+  BIND 1 TABLE inview
+  # ROOT_CONST <bind idx> RAW <bytes>
+  ROOT_CONST 2 RAW 32
+    float 0.5
+    float 1.5
+    float 2.5
+    float 3.5
+    float 4.5
+    float 5.5
+    float 6.5
+    float 7.5
+  END
+RUN 1 1 1
+
+EXPECT outbuf float OFFSET 0 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 32 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 64 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 96 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5

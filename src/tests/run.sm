@@ -1,0 +1,787 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+================================================================================
+Invalid Identifier
+================================================================================
+
+VIEW view buf AS SRV
+
+--------------------------------------------------------------------------------
+
+smoldr::UnknownIdentifier
+
+  × No object called 'buf' found
+   ╭─[input:1:11]
+ 1 │ VIEW view buf AS SRV
+   ·           ─┬─
+   ·            ╰── buf is used here
+   ╰────
+
+================================================================================
+Wrong Identifier Type
+================================================================================
+
+SOURCE source
+END
+VIEW view source AS SRV
+
+--------------------------------------------------------------------------------
+
+smoldr::WrongType
+
+  × Expected one of BUFFER but got SOURCE
+   ╭─[input:1:8]
+ 1 │ SOURCE source
+   ·        ───┬──
+   ·           ╰── source is declared here as SOURCE
+ 2 │ END
+ 3 │ VIEW view source AS SRV
+   ·           ───┬──
+   ·              ╰── and used here, where one of BUFFER is expected
+   ╰────
+
+================================================================================
+Duplicate Identifier
+================================================================================
+
+SOURCE double
+END
+
+SOURCE double
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::DuplicateIdentifier
+
+  × An identifier with this name already exists
+   ╭─[input:1:8]
+ 1 │ SOURCE double
+   ·        ───┬──
+   ·           ╰── double was first defined here
+ 2 │ END
+ 3 │ 
+ 4 │ SOURCE double
+   ·        ───┬──
+   ·           ╰── and then defined again here
+ 5 │ END
+   ╰────
+  help: Choose another name for one of the objects
+
+================================================================================
+Compute Pipeline no Shaders
+================================================================================
+
+PIPELINE pipe COMPUTE
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::InvalidShaderCount
+
+  × Compute pipeline must have exactly 1 shader but has 0
+   ╭─[input:1:10]
+ 1 │ PIPELINE pipe COMPUTE
+   ·          ──┬─
+   ·            ╰── Pipeline defined here
+ 2 │ END
+   ╰────
+
+================================================================================
+Compute Pipeline two Shaders
+================================================================================
+
+SOURCE src
+  [numthreads(32, 1, 1)]
+  void main() {}
+END
+
+OBJECT obj1 src cs_6_4 main
+OBJECT obj2 src cs_6_4 main
+
+PIPELINE pipe COMPUTE
+  ATTACH obj1
+  ATTACH obj2
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::InvalidShaderCount
+
+  × Compute pipeline must have exactly 1 shader but has 2
+    ╭─[input:9:10]
+  8 │ 
+  9 │ PIPELINE pipe COMPUTE
+    ·          ──┬─
+    ·            ╰── Pipeline defined here
+ 10 │   ATTACH obj1
+    ╰────
+
+================================================================================
+IMPORT Success
+================================================================================
+
+INCLUDE imported.sm
+VIEW view buf AS SRV
+
+--------------------------------------------------------------------------------
+
+
+
+================================================================================
+IMPORT Fail
+================================================================================
+
+INCLUDE non-existing.sm
+
+--------------------------------------------------------------------------------
+
+smoldr::ApplyDirective
+
+  × Failed to run statement
+  ├─▶   × Failed to open input file
+  │   
+  ├─▶ Input file: non-existing.sm
+  ╰─▶ No such file or directory (os error 2)
+   ╭─[input:1:1]
+ 1 │ INCLUDE non-existing.sm
+   · ───┬───
+   ·    ╰── defined here
+   ╰────
+  help: Using `--validate` sometimes provides better errors
+
+================================================================================
+Imported Error
+================================================================================
+
+INCLUDE imported-error.sm
+
+--------------------------------------------------------------------------------
+
+smoldr::UnknownIdentifier
+
+  × No object called 'buf' found
+   ╭─[imported-error.sm:6:11]
+ 5 │ # Uses non-existing buffer
+ 6 │ VIEW view buf AS SRV
+   ·           ─┬─
+   ·            ╰── buf is used here
+   ╰────
+
+================================================================================
+EXPECT Success
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 1
+
+--------------------------------------------------------------------------------
+
+
+
+================================================================================
+EXPECT Fail
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+
+--------------------------------------------------------------------------------
+
+smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:2:44]
+ 1 │ BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+ 2 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+
+================================================================================
+EXPECT Invalid Offset
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+EXPECT buf float OFFSET 16 EQ .0 .25 .5 .75 42
+
+--------------------------------------------------------------------------------
+
+smoldr::ExpectOutOfBounds
+
+  × Expected data check range 16..36 is out of bounds
+   ╭─[input:2:8]
+ 1 │ BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+ 2 │ EXPECT buf float OFFSET 16 EQ .0 .25 .5 .75 42
+   ·        ─┬─              ─┬
+   ·         │                ╰── Offset declared here
+   ·         ╰── Checking buffer declared with byte size 32
+   ╰────
+
+================================================================================
+EXPECT then other Fail
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+VIEW view source AS SRV
+
+--------------------------------------------------------------------------------
+
+smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:2:44]
+ 1 │ BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+ 2 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 3 │ VIEW view source AS SRV
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+
+================================================================================
+EXPECT Abort
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+
+--------------------------------------------------------------------------------
+
+smoldr::Abort
+
+  × Aborting due to too many (32) failed EXPECT statements
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:2:44]
+ 1 │ BUFFER buf DATA_TYPE float SIZE 8 SERIES_FROM 0.0 INC_BY .25
+ 2 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 3 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:3:44]
+ 2 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 3 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 4 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:4:44]
+ 3 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 4 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 5 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:5:44]
+ 4 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 5 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 6 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:6:44]
+ 5 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 6 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 7 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:7:44]
+ 6 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 7 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 8 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+   ╭─[input:8:44]
+ 7 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 8 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ·                                            ─┬
+   ·                                             ╰── buf contains 1 here
+ 9 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+   ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:9:44]
+  8 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+  9 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 10 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:10:44]
+  9 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 10 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 11 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:11:44]
+ 10 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 11 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 12 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:12:44]
+ 11 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 12 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 13 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:13:44]
+ 12 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 13 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 14 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:14:44]
+ 13 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 14 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 15 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:15:44]
+ 14 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 15 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 16 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:16:44]
+ 15 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 16 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 17 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:17:44]
+ 16 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 17 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 18 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:18:44]
+ 17 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 18 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 19 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:19:44]
+ 18 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 19 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 20 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:20:44]
+ 19 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 20 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 21 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:21:44]
+ 20 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 21 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 22 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:22:44]
+ 21 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 22 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 23 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:23:44]
+ 22 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 23 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 24 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:24:44]
+ 23 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 24 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 25 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:25:44]
+ 24 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 25 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 26 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:26:44]
+ 25 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 26 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 27 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:27:44]
+ 26 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 27 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 28 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:28:44]
+ 27 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 28 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 29 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:29:44]
+ 28 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 29 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 30 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:30:44]
+ 29 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 30 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 31 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:31:44]
+ 30 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 31 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 32 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:32:44]
+ 31 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 32 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 33 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1
+        
+
+Error: smoldr::Expect
+
+  × Buffer content does not match expected data
+    ╭─[input:33:44]
+ 32 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+ 33 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ·                                            ─┬
+    ·                                             ╰── buf contains 1 here
+ 34 │ EXPECT buf float OFFSET 0 EQ .0 .25 .5 .75 42
+    ╰────
+  help:   ╰────────────────────────────────────────────────────────────
+        Expected at OFFSET 0: 0 0.25 0.5 0.75 42
+          Differences in buf:                  1

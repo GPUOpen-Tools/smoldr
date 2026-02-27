@@ -1,0 +1,8 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+BUFFER buf DATA_TYPE float SIZE 5 SERIES_FROM 0 INC_BY 1
+
+# Compare the buffer content, allowing a difference of 0.25 for every value
+EXPECT buf float EPSILON 0.25 OFFSET 0 EQ 0.2 1.2 1.75 2.8

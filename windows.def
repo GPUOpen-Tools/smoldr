@@ -1,0 +1,7 @@
+; Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+;
+; SPDX-License-Identifier: MIT OR Apache-2.0
+
+EXPORTS
+D3D12SDKVersion DATA PRIVATE
+D3D12SDKPath DATA PRIVATE

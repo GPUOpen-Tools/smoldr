@@ -1,0 +1,6 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Uses non-existing buffer
+VIEW view buf AS SRV

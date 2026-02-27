@@ -1,0 +1,13 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# For information about the config format, see https://github.com/crate-ci/typos
+
+[default.extend-identifiers]
+struc = "struc"
+# -Fo option
+Fo = "Fo"
+
+[default.extend-words]
+typ = "typ"

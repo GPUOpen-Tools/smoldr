@@ -1,0 +1,50 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Single Triangle basic hit/miss.
+
+INCLUDE RtBasics.sm
+
+# Add views to the descriptor heap
+VIEW asview triangle_tlas AS RTAS SRV
+VIEW outview basic_outbuf AS TYPED UAV float
+
+# Make an RT Pipeline State Object from the library
+RTPSO rtpso
+  LIB basic_lib
+END
+
+# Build shader tables
+SHADERTABLE raygen rtpso
+  RECORD 0 BasicRayGen -
+END
+
+SHADERTABLE miss rtpso
+  RECORD 0 BasicMiss -
+END
+
+SHADERTABLE hit rtpso
+  RECORD 0 BasicHitGroup -
+END
+
+# Dispatch
+DISPATCHRAYS rtpso
+  ROOT_SIG basic_global_root
+  BIND 0 TABLE outview
+  BIND 1 TABLE asview
+  ROOT_CONST 2 RAW 4
+    uint32 8
+  END
+RUN raygen miss hit - 8 8 1
+
+DUMP basic_outbuf float PRINT_STRIDE 8
+
+EXPECT basic_outbuf float OFFSET 0 EQ   0 0 0 0 0 0 0 0
+EXPECT basic_outbuf float OFFSET 32 EQ  0 0 0 0 0 0 0 0
+EXPECT basic_outbuf float OFFSET 64 EQ  0 0 0 1 1 0 0 0
+EXPECT basic_outbuf float OFFSET 96 EQ  0 0 0 1 1 0 0 0
+EXPECT basic_outbuf float OFFSET 128 EQ 0 0 1 1 1 1 0 0
+EXPECT basic_outbuf float OFFSET 160 EQ 0 0 1 1 1 1 0 0
+EXPECT basic_outbuf float OFFSET 192 EQ 0 1 1 1 1 1 1 0
+EXPECT basic_outbuf float OFFSET 224 EQ 0 0 0 0 0 0 0 0

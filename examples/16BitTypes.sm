@@ -1,0 +1,51 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Use 16 bit types
+SOURCE csshader
+ByteAddressBuffer   inbuf   : register(t0); // SRV
+RWByteAddressBuffer outbuf  : register(u0); // UAV
+RWByteAddressBuffer halfbuf : register(u1); // UAV
+
+[numthreads(32, 1, 1)]
+void CSMain(uint3 DTid : SV_DispatchThreadID) {
+  half first = inbuf.Load<float16_t>(2) + inbuf.Load<float16_t>(4);
+  outbuf.Store<float>(DTid.x * 4, first);
+  halfbuf.Store<float16_t>(DTid.x * 2, first);
+}
+END
+
+# 16 bit types need to be enabled in dxc arguments
+OBJECT csobj csshader cs_6_4 CSMain -enable-16bit-types
+
+BUFFER inbuf DATA_TYPE float16 SIZE 32 SERIES_FROM 0.0 INC_BY 0.5
+BUFFER outbuf DATA_TYPE float SIZE 32 FILL 0
+BUFFER halfbuf DATA_TYPE float16 SIZE 32 FILL 0
+
+ROOT default
+  UAV REGISTER 0 SPACE 0
+  UAV REGISTER 1 SPACE 0
+  SRV REGISTER 0 SPACE 0
+END
+
+PIPELINE cspipe COMPUTE
+  ATTACH csobj
+  ROOT   default
+END
+
+DISPATCH cspipe
+  UAV 0 outbuf
+  UAV 1 halfbuf
+  SRV 2 inbuf
+RUN 1 1 1
+
+EXPECT outbuf float OFFSET 0 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 32 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 64 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT outbuf float OFFSET 96 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+
+EXPECT halfbuf float16 OFFSET 0 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT halfbuf float16 OFFSET 16 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT halfbuf float16 OFFSET 32 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5
+EXPECT halfbuf float16 OFFSET 48 EQ 1.5 1.5 1.5 1.5 1.5 1.5 1.5 1.5

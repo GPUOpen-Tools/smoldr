@@ -1,0 +1,86 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Defines shared basics for raytracing tests
+# This file can be used with
+# INCLUDE RtBasics.sm
+
+SOURCE basic_source
+
+RaytracingAccelerationStructure gScene  : register(t0, space0);
+RWBuffer<float>                 gOutput : register(u0, space0);
+cbuffer size : register (b0) {
+  unsigned int width;
+};
+
+struct BasicPayload {
+  float value;
+};
+
+// Launch a set of rays 0.0...1.0 in screen space
+[shader("raygeneration")]
+void BasicRayGen() {
+  uint2 dims = DispatchRaysDimensions().xy;
+  uint2 index = DispatchRaysIndex().xy;
+  BasicPayload p;
+  p.value = -1.0;
+  // Screen position for the ray
+  float2 fragCoord = ((index.xy + 0.5f) / dims) * 2.0f - 1.0f;
+
+  // Should show part of the triangle. Triangle should be centered at 0, 0, 1.0s
+  RayDesc ray;
+  ray.TMin      = 1.0e-4f;
+  ray.TMax      = 1.0e+38f;
+  ray.Origin    = float3(fragCoord.x, fragCoord.y, 0.0);
+  ray.Direction = float3(0, 0, 1);
+  TraceRay(gScene, RAY_FLAG_NONE, 0xff, 0, 0, 0, ray, p);
+  gOutput[index.y * width + index.x] = p.value;
+}
+
+// Miss is 0.0
+[shader("miss")]
+void BasicMiss(inout BasicPayload p) {
+  p.value = 0.0;
+}
+
+// Hit is 1.0
+[shader("closesthit")]
+void BasicClosestHit(inout BasicPayload p, in BuiltInTriangleIntersectionAttributes attr) {
+  p.value = 1.0;
+}
+
+// Various metadata for hitgroups, etc.
+TriangleHitGroup BasicHitGroup = {"", "BasicClosestHit"};
+
+GlobalRootSignature BasicRoot = {
+  "DescriptorTable(UAV(u0)),"              // Output
+  "DescriptorTable(SRV(t0)),"              // scene
+  "RootConstants(num32BitConstants=1, b0)" // inputs
+};
+
+RaytracingShaderConfig BasicShaderConfig = {
+  16, // max payload size
+  8   // max attribute size
+};
+
+SubobjectToExportsAssociation BasicShaderConfigAssociation = {"BasicShaderConfig", "BasicRayGen;BasicMiss;BasicClosestHit"};
+
+RaytracingPipelineConfig BasicPipelineConfig =
+{
+  1 // Max trace recursion depth
+};
+
+END
+
+# Build the source with DXC
+LIB basic_lib basic_source lib_6_4
+
+# Extract the global root sig from the DXIL library
+ROOT_DXIL basic_global_root basic_lib
+
+# Buffer to hold output
+BUFFER basic_outbuf DATA_TYPE float SIZE 64 FILL 0
+
+# Build a single triangle TLAS
+INCLUDE as-triangle.sm

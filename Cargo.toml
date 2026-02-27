@@ -1,0 +1,64 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "smoldr"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+edition = "2021"
+
+[features]
+# DirectX 12 is enabled by default, use --no-default-features to disable it on Linux
+default = [ "enable_dx12" ]
+enable_dx12 = [ "windows" ]
+# Use C++ code to compile shaders
+enable_cpp = [ "cxx", "cxx-build" ]
+# Add Agility SDK support, see readme for more info.
+agility_sdk = ["enable_dx12"]
+
+[build-dependencies]
+cxx-build = { version = "1", optional = true }
+
+[dev-dependencies]
+regex = "1"
+test-log = { version = "0.2", default-features = false, features = [ "trace" ] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [ "env-filter" ] }
+
+[dependencies]
+bitflags = "2"
+clap = { version = "4", features = ["derive"] }
+cxx = { version = "1", optional = true }
+half = { version = "2", features = ["std", "num-traits"] }
+humantime = "2"
+index_vec = "0.1"
+memchr = "2"
+miette = { version = "7", features = ["fancy"] }
+num-traits = "0.2"
+tempfile = "3"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [ "env-filter" ] }
+winnow = "0.7"
+
+[dependencies.windows]
+version = "0.62.0"
+optional = true
+features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D_Dxc",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Input",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_Security",
+    "Win32_System_Console",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Kernel",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_WindowsAndMessaging",
+]

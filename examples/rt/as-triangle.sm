@@ -1,0 +1,15 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+BLAS triangle_blas
+  GEOMETRY TRIANGLE
+    VERTEX 0.0 -0.75 1.0
+    VERTEX -0.75 0.75 1.0
+    VERTEX 0.75 0.75 1.0
+  END
+END
+
+TLAS triangle_tlas
+  BLAS triangle_blas -
+END

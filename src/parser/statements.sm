@@ -1,0 +1,2094 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+================================================================================
+Empty file
+================================================================================
+
+
+
+--------------------------------------------------------------------------------
+
+[]
+
+================================================================================
+ident only
+================================================================================
+
+ident
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::UnknownStatement
+
+  × Unknown statement
+   ╭────
+ 1 │ ident
+   · ──┬──
+   ·   ╰── Statement starts here
+   ╰────
+  help: Try one of the statements from the documentation
+
+================================================================================
+SOURCE
+================================================================================
+
+SOURCE csshader
+shader code
+in multiple lines
+EN
+
+also containing ENDIANNESS
+end creepy END erman
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Source {
+        name: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 7..15,
+        },
+        content: "\nshader code\nin multiple lines\nEN\n\nalso containing ENDIANNESS\nend creepy END erman",
+    },
+]
+
+================================================================================
+Empty SOURCE
+================================================================================
+
+SOURCE csshader
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Source {
+        name: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 7..15,
+        },
+        content: "\n",
+    },
+]
+
+================================================================================
+Empty SOURCE line
+================================================================================
+
+SOURCE csshader
+
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Source {
+        name: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 7..15,
+        },
+        content: "\n",
+    },
+]
+
+================================================================================
+SOURCE with E
+================================================================================
+
+SOURCE csshader
+E
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Source {
+        name: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 7..15,
+        },
+        content: "\nE",
+    },
+]
+
+================================================================================
+SOURCE with backslash
+================================================================================
+
+SOURCE csshader
+#define whatever \
+    value
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Source {
+        name: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 7..15,
+        },
+        content: "\n#define whatever \\\n    value",
+    },
+]
+
+================================================================================
+SOURCE without name
+================================================================================
+
+SOURCE
+content
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidStatement
+
+  × Invalid SOURCE statement
+   ╭─[1:1]
+ 1 │ SOURCE
+   · ───┬──▲
+   ·    │  ╰── Invalid here
+   ·    ╰── Declared here
+ 2 │ content
+   ╰────
+  help: Expected format: SOURCE <name> code... END
+
+================================================================================
+Non-ending SOURCE
+================================================================================
+
+SOURCE csshader
+this is where the source starts, but it never ends
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::UndelimitedStatement
+
+  × Undelimited statement, `END` not found
+   ╭─[2:1]
+ 1 │ SOURCE csshader
+ 2 │ this is where the source starts, but it never ends
+   · ┬
+   · ╰── Statement starts here
+   ╰────
+  help: Statement must end with an `END` on a single line
+
+================================================================================
+OBJECT
+================================================================================
+
+OBJECT csobj csshader cs_6_4 CSMain -v "\01escaped" "esc \ff bde"
+
+--------------------------------------------------------------------------------
+
+[
+    Object {
+        name: SpanObj {
+            content: "csobj",
+            source_file: 0,
+            span: 7..12,
+        },
+        source: SpanObj {
+            content: "csshader",
+            source_file: 0,
+            span: 13..21,
+        },
+        shader_model: "cs_6_4",
+        entrypoint: Some(
+            "CSMain",
+        ),
+        args: [
+            "-v",
+            "\u{1}escaped",
+            "esc ÿ bde",
+        ],
+    },
+]
+
+================================================================================
+OBJECT from DXIL
+================================================================================
+
+OBJECT csobj
+dxil goes here
+END
+
+--------------------------------------------------------------------------------
+
+[
+    ObjectDxil {
+        name: SpanObj {
+            content: "csobj",
+            source_file: 0,
+            span: 7..12,
+        },
+        content: "dxil goes here",
+    },
+]
+
+================================================================================
+OBJECT from realistic DXIL
+================================================================================
+
+OBJECT csobj
+; Not compiling, but contains some realistic input
+; ModuleID = '0x00000000000000000000000000000000'
+target datalayout = "e-m:e-p:32:32-i1:32-i8:8-i16:32-i32:32-i64:64-f16:32-f32:32-f64:64-n8:16:32:64"
+target triple = "dxil-ms-dx"
+
+%struct.RaytracingAccelerationStructure = type { i32 }
+%"class.RWBuffer<float>" = type { float }
+%struct.Payload = type { float, [38 x float] }
+%dx.types.Handle = type { i8* }
+%struct.BuiltInTriangleIntersectionAttributes = type { <2 x float> }
+
+@"\01?gScene@@3URaytracingAccelerationStructure@@A" = external constant %struct.RaytracingAccelerationStructure, align 4
+@"\01?gOutput@@3V?$RWBuffer@M@@A" = external constant %"class.RWBuffer<float>", align 4
+
+; Function Attrs: nounwind
+define void @"\01?RayGen@@YAXXZ"() #0 {
+  %1 = load %struct.RaytracingAccelerationStructure, %struct.RaytracingAccelerationStructure* @"\01?gScene@@3URaytracingAccelerationStructure@@A", align 4
+  %2 = load %"class.RWBuffer<float>", %"class.RWBuffer<float>"* @"\01?gOutput@@3V?$RWBuffer@M@@A", align 4
+  %3 = alloca %struct.Payload, align 4
+  %4 = call i32 @dx.op.dispatchRaysDimensions.i32(i32 146, i8 0)
+  call void @dx.op.traceRay.struct.Payload(i32 157, %dx.types.Handle %17, i32 0, i32 255, i32 0, i32 0, i32 0, float %15, float %16, float 0.000000e+00, float 0x3F1A36E2E0000000, float 0.000000e+00, float 0.000000e+00, float 1.000000e+00, float 0x47D2CED320000000, %struct.Payload* nonnull %3)
+  br label %18
+}
+
+; Function Attrs: nounwind memory(read)
+declare %dx.types.Handle @"dx.op.createHandleForLib.class.RWBuffer<float>"(i32, %"class.RWBuffer<float>") #2
+
+attributes #0 = { nounwind }
+attributes #1 = { nounwind memory(none) }
+attributes #2 = { nounwind memory(read) }
+
+!llvm.ident = !{!0}
+!dx.version = !{!1}
+!dx.valver = !{!2}
+!dx.shaderModel = !{!3}
+!dx.resources = !{!4}
+!dx.typeAnnotations = !{!11}
+!dx.entryPoints = !{!19, !21, !24, !26}
+
+!0 = !{!"clang version 3.7 (tags/RELEASE_370/final)"}
+!6 = !{i32 0, %struct.RaytracingAccelerationStructure* @"\01?gScene@@3URaytracingAccelerationStructure@@A", !"gScene", i32 0, i32 0, i32 1, i32 16, i32 0, !7}
+!11 = !{i32 1, void ()* @"\01?RayGen@@YAXXZ", !12, void (%struct.Payload*)* @"\01?simple_miss@@YAXUPayload@@@Z", !15, void (%struct.Payload*, %struct.BuiltInTriangleIntersectionAttributes*)* @"\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z", !17}
+!24 = !{void (%struct.Payload*, %struct.BuiltInTriangleIntersectionAttributes*)* @"\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z", !"\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z", null, null, !25}
+!31 = !{!"Simple C/C++ TBAA"}
+END
+
+--------------------------------------------------------------------------------
+
+[
+    ObjectDxil {
+        name: SpanObj {
+            content: "csobj",
+            source_file: 0,
+            span: 7..12,
+        },
+        content: "; Not compiling, but contains some realistic input\n; ModuleID = '0x00000000000000000000000000000000'\ntarget datalayout = \"e-m:e-p:32:32-i1:32-i8:8-i16:32-i32:32-i64:64-f16:32-f32:32-f64:64-n8:16:32:64\"\ntarget triple = \"dxil-ms-dx\"\n\n%struct.RaytracingAccelerationStructure = type { i32 }\n%\"class.RWBuffer<float>\" = type { float }\n%struct.Payload = type { float, [38 x float] }\n%dx.types.Handle = type { i8* }\n%struct.BuiltInTriangleIntersectionAttributes = type { <2 x float> }\n\n@\"\\01?gScene@@3URaytracingAccelerationStructure@@A\" = external constant %struct.RaytracingAccelerationStructure, align 4\n@\"\\01?gOutput@@3V?$RWBuffer@M@@A\" = external constant %\"class.RWBuffer<float>\", align 4\n\n; Function Attrs: nounwind\ndefine void @\"\\01?RayGen@@YAXXZ\"() #0 {\n  %1 = load %struct.RaytracingAccelerationStructure, %struct.RaytracingAccelerationStructure* @\"\\01?gScene@@3URaytracingAccelerationStructure@@A\", align 4\n  %2 = load %\"class.RWBuffer<float>\", %\"class.RWBuffer<float>\"* @\"\\01?gOutput@@3V?$RWBuffer@M@@A\", align 4\n  %3 = alloca %struct.Payload, align 4\n  %4 = call i32 @dx.op.dispatchRaysDimensions.i32(i32 146, i8 0)\n  call void @dx.op.traceRay.struct.Payload(i32 157, %dx.types.Handle %17, i32 0, i32 255, i32 0, i32 0, i32 0, float %15, float %16, float 0.000000e+00, float 0x3F1A36E2E0000000, float 0.000000e+00, float 0.000000e+00, float 1.000000e+00, float 0x47D2CED320000000, %struct.Payload* nonnull %3)\n  br label %18\n}\n\n; Function Attrs: nounwind memory(read)\ndeclare %dx.types.Handle @\"dx.op.createHandleForLib.class.RWBuffer<float>\"(i32, %\"class.RWBuffer<float>\") #2\n\nattributes #0 = { nounwind }\nattributes #1 = { nounwind memory(none) }\nattributes #2 = { nounwind memory(read) }\n\n!llvm.ident = !{!0}\n!dx.version = !{!1}\n!dx.valver = !{!2}\n!dx.shaderModel = !{!3}\n!dx.resources = !{!4}\n!dx.typeAnnotations = !{!11}\n!dx.entryPoints = !{!19, !21, !24, !26}\n\n!0 = !{!\"clang version 3.7 (tags/RELEASE_370/final)\"}\n!6 = !{i32 0, %struct.RaytracingAccelerationStructure* @\"\\01?gScene@@3URaytracingAccelerationStructure@@A\", !\"gScene\", i32 0, i32 0, i32 1, i32 16, i32 0, !7}\n!11 = !{i32 1, void ()* @\"\\01?RayGen@@YAXXZ\", !12, void (%struct.Payload*)* @\"\\01?simple_miss@@YAXUPayload@@@Z\", !15, void (%struct.Payload*, %struct.BuiltInTriangleIntersectionAttributes*)* @\"\\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z\", !17}\n!24 = !{void (%struct.Payload*, %struct.BuiltInTriangleIntersectionAttributes*)* @\"\\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z\", !\"\\01?simple_hit@@YAXUPayload@@UBuiltInTriangleIntersectionAttributes@@@Z\", null, null, !25}\n!31 = !{!\"Simple C/C++ TBAA\"}",
+    },
+]
+
+================================================================================
+OBJECT without entrypoint
+================================================================================
+
+OBJECT csobj csshader cs_6_4
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidStatement
+
+  × Invalid OBJECT statement
+   ╭────
+ 1 │ OBJECT csobj csshader cs_6_4
+   · ───┬──                     ▲
+   ·    │                       ╰── Invalid here
+   ·    ╰── Declared here
+   ╰────
+  help: Expected format: OBJECT <name> <source_name> <shader_model>
+        <entrypoint> [<compile arguments>]
+
+================================================================================
+OBJECT with escape
+================================================================================
+
+OBJECT csobj csshader cs_6_4 CSMain -IC:\path\to\include
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::UnknownCharacterEscape
+
+  × Unknown character escape
+   ╭────
+ 1 │ OBJECT csobj csshader cs_6_4 CSMain -IC:\path\to\include
+   ·                                          ┬
+   ·                                          ╰── Unknown character escape
+   ╰────
+  help: Allowed escapes are \, " and two hex digits for a character code.
+        If you meant to write a literal backslash, use \\.
+
+================================================================================
+Comment
+================================================================================
+
+#
+# comment
+
+--------------------------------------------------------------------------------
+
+[]
+
+================================================================================
+BUFFER
+================================================================================
+
+BUFFER buf DATA_TYPE float SIZE 64 SERIES_FROM 0.0 INC_BY .25
+BUFFER buf DATA_TYPE float SIZE 32 FILL 0
+BUFFER buf RAW 16
+  float 1.0 2.0
+
+  uint32 3 4
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Buffer {
+        name: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 7..10,
+        },
+        content: Resolved(
+            Typed {
+                typ: F32,
+                element_count: 64,
+                fill: Series {
+                    from: F32(
+                        0.0,
+                    ),
+                    increment: F32(
+                        0.25,
+                    ),
+                },
+            },
+        ),
+    },
+    Buffer {
+        name: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 69..72,
+        },
+        content: Resolved(
+            Typed {
+                typ: F32,
+                element_count: 32,
+                fill: Const(
+                    F32(
+                        0.0,
+                    ),
+                ),
+            },
+        ),
+    },
+    Buffer {
+        name: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 111..114,
+        },
+        content: Raw {
+            values: UnresolvedValues {
+                data: [
+                    Resolved(
+                        F32(
+                            1.0,
+                        ),
+                    ),
+                    Resolved(
+                        F32(
+                            2.0,
+                        ),
+                    ),
+                    Resolved(
+                        U32(
+                            3,
+                        ),
+                    ),
+                    Resolved(
+                        U32(
+                            4,
+                        ),
+                    ),
+                ],
+            },
+        },
+    },
+]
+
+================================================================================
+ROOT
+================================================================================
+
+ROOT default
+  TABLE UAV REGISTER 0 NUMBER 1 SPACE 0
+  SRV REGISTER 0 SPACE 0
+
+  ROOT_CONST NUMBER 1 REGISTER 2 SPACE 0
+  CONFIG allow_input_assembler_input_layout deny_vertex_shader_root_access deny_hull_shader_root_access deny_domain_shader_root_access deny_geometry_shader_root_access deny_pixel_shader_root_access allow_stream_output local_root_signature deny_amplification_shader_root_access deny_mesh_shader_root_access cbv_srv_uav_heap_directly_indexed sampler_heap_directly_indexed
+END
+
+--------------------------------------------------------------------------------
+
+[
+    RootSig {
+        name: SpanObj {
+            content: "default",
+            source_file: 0,
+            span: 5..12,
+        },
+        entries: [
+            Table(
+                RootSigTable {
+                    typ: Uav,
+                    register: 0,
+                    number: 1,
+                    space: 0,
+                },
+            ),
+            View(
+                RootSigView {
+                    typ: Srv,
+                    register: 0,
+                    space: 0,
+                },
+            ),
+            Const(
+                RootSigConst {
+                    number: 1,
+                    register: 2,
+                    space: 0,
+                },
+            ),
+        ],
+        config: RootSigConfig(
+            ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | DENY_VERTEX_SHADER_ROOT_ACCESS | DENY_HULL_SHADER_ROOT_ACCESS | DENY_DOMAIN_SHADER_ROOT_ACCESS | DENY_GEOMETRY_SHADER_ROOT_ACCESS | DENY_PIXEL_SHADER_ROOT_ACCESS | ALLOW_STREAM_OUTPUT | LOCAL_ROOT_SIGNATURE | DENY_AMPLIFICATION_SHADER_ROOT_ACCESS | DENY_MESH_SHADER_ROOT_ACCESS | CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | SAMPLER_HEAP_DIRECTLY_INDEXED,
+        ),
+    },
+]
+
+================================================================================
+ROOT invalid table
+================================================================================
+
+ROOT default
+  TABLE invalid_ty REGISTER 0 NUMBER 1 SPACE 0
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidWord
+
+  × Invalid view
+   ╭─[2:9]
+ 1 │ ROOT default
+ 2 │   TABLE invalid_ty REGISTER 0 NUMBER 1 SPACE 0
+   ·         ─────┬────
+   ·              ╰── Must be one of SRV, UAV
+ 3 │ END
+   ╰────
+
+================================================================================
+PIPELINE
+================================================================================
+
+PIPELINE cspipe COMPUTE
+  ATTACH   csobj
+
+  ROOT     default
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Pipeline {
+        name: SpanObj {
+            content: "cspipe",
+            source_file: 0,
+            span: 9..15,
+        },
+        typ: Compute,
+        shaders: [
+            SpanObj {
+                content: "csobj",
+                source_file: 0,
+                span: 35..40,
+            },
+        ],
+        root_sig: Some(
+            SpanObj {
+                content: "default",
+                source_file: 0,
+                span: 53..60,
+            },
+        ),
+    },
+]
+
+================================================================================
+VIEW
+================================================================================
+
+VIEW inview inbuf AS SRV
+VIEW inview inbuf AS TYPED UAV float
+VIEW inview inbuf AS STRUCTURED SRV BYTES 8
+VIEW asview buf AS RTAS SRV
+
+--------------------------------------------------------------------------------
+
+[
+    View {
+        name: SpanObj {
+            content: "inview",
+            source_file: 0,
+            span: 5..11,
+        },
+        buffer: Some(
+            SpanObj {
+                content: "inbuf",
+                source_file: 0,
+                span: 12..17,
+            },
+        ),
+        typ: Raw {
+            typ: Srv,
+        },
+    },
+    View {
+        name: SpanObj {
+            content: "inview",
+            source_file: 0,
+            span: 30..36,
+        },
+        buffer: Some(
+            SpanObj {
+                content: "inbuf",
+                source_file: 0,
+                span: 37..42,
+            },
+        ),
+        typ: Typed {
+            typ: Uav,
+            data_type: F32,
+        },
+    },
+    View {
+        name: SpanObj {
+            content: "inview",
+            source_file: 0,
+            span: 67..73,
+        },
+        buffer: Some(
+            SpanObj {
+                content: "inbuf",
+                source_file: 0,
+                span: 74..79,
+            },
+        ),
+        typ: Structured {
+            typ: Srv,
+            struct_size: 8,
+        },
+    },
+    View {
+        name: SpanObj {
+            content: "asview",
+            source_file: 0,
+            span: 111..117,
+        },
+        buffer: Some(
+            SpanObj {
+                content: "buf",
+                source_file: 0,
+                span: 118..121,
+            },
+        ),
+        typ: RaytracingAccelStruct,
+    },
+]
+
+================================================================================
+PIPELINE invalid type
+================================================================================
+
+PIPELINE cspipe RT
+  ATTACH csobj
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidWord
+
+  × Invalid pipeline type
+   ╭─[1:17]
+ 1 │ PIPELINE cspipe RT
+   ·                 ─┬
+   ·                  ╰── Must be one of COMPUTE
+ 2 │   ATTACH csobj
+   ╰────
+
+================================================================================
+PIPELINE double root
+================================================================================
+
+PIPELINE cspipe COMPUTE
+  ATTACH csobj
+  ROOT r1
+  ROOT r2
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::DuplicateArgument
+
+  × Can only have a single ROOT
+   ╭─[3:3]
+ 2 │   ATTACH csobj
+ 3 │   ROOT r1
+   ·   ──┬─
+   ·     ╰── First ROOT declared here
+ 4 │   ROOT r2
+   ·   ──┬─
+   ·     ╰── Second ROOT declared here
+ 5 │ END
+   ╰────
+  help: Remove one of the ROOTs
+
+================================================================================
+DISPATCHRAYS
+================================================================================
+
+DISPATCHRAYS rtpso
+	BIND 0 TABLE outview
+
+	BIND 1 TABLE inview
+  ROOT_CONST 2 DATA_TYPE uint8 SIZE 8 SERIES_FROM 0 INC_BY 4
+  UAV 3 buf
+RUN raygentab misstab hittab calltab 1 1 1
+
+--------------------------------------------------------------------------------
+
+[
+    Dispatch {
+        identifier: SpanObj {
+            content: "DISPATCHRAYS",
+            source_file: 0,
+            span: 0..12,
+        },
+        pipeline: SpanObj {
+            content: "rtpso",
+            source_file: 0,
+            span: 13..18,
+        },
+        root_val: UnresolvedRootVal {
+            binds: [
+                Bind {
+                    index: 0,
+                    view: SpanObj {
+                        content: "outview",
+                        source_file: 0,
+                        span: 33..40,
+                    },
+                },
+                Bind {
+                    index: 1,
+                    view: SpanObj {
+                        content: "inview",
+                        source_file: 0,
+                        span: 56..62,
+                    },
+                },
+            ],
+            consts: [
+                UnresolvedRootValConst {
+                    index: 2,
+                    content: Resolved(
+                        Typed {
+                            typ: U8,
+                            element_count: 8,
+                            fill: Series {
+                                from: U8(
+                                    0,
+                                ),
+                                increment: U8(
+                                    4,
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ],
+            views: [
+                RootValView {
+                    index: 3,
+                    typ: Some(
+                        Uav,
+                    ),
+                    buffer: SpanObj {
+                        content: "buf",
+                        source_file: 0,
+                        span: 132..135,
+                    },
+                },
+            ],
+        },
+        root_sig: None,
+        typ: DispatchRays {
+            dimensions: Dim3(
+                [
+                    1,
+                    1,
+                    1,
+                ],
+            ),
+            tables: [
+                Some(
+                    SpanObj {
+                        content: "raygentab",
+                        source_file: 0,
+                        span: 140..149,
+                    },
+                ),
+                Some(
+                    SpanObj {
+                        content: "misstab",
+                        source_file: 0,
+                        span: 150..157,
+                    },
+                ),
+                Some(
+                    SpanObj {
+                        content: "hittab",
+                        source_file: 0,
+                        span: 158..164,
+                    },
+                ),
+                Some(
+                    SpanObj {
+                        content: "calltab",
+                        source_file: 0,
+                        span: 165..172,
+                    },
+                ),
+            ],
+        },
+    },
+]
+
+================================================================================
+DISPATCHRAYS without tables
+================================================================================
+
+DISPATCHRAYS rtpso
+	BIND 0 TABLE outview
+
+	BIND 1 TABLE inview
+  ROOT_CONST 2 DATA_TYPE uint8 SIZE 8 SERIES_FROM 0 INC_BY 4
+  UAV 3 buf
+RUN 1 1 1
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidStatement
+
+  × Invalid DISPATCHRAYS statement
+   ╭─[1:1]
+ 1 │ DISPATCHRAYS rtpso
+   · ──────┬─────
+   ·       ╰── Declared here
+ 2 │     BIND 0 TABLE outview
+   ╰────
+   ╭─[7:5]
+ 6 │   UAV 3 buf
+ 7 │ RUN 1 1 1
+   ·     ▲
+   ·     ╰── Invalid here
+   ╰────
+  help: Expected format: DISPATCHRAYS <pipeline> content... RUN <raygentab>
+        <misstab> <hittab> <calltab> <x> <y> <z>
+
+================================================================================
+DISPATCHRAYS without dimension
+================================================================================
+
+DISPATCHRAYS rtpso
+	BIND 0 TABLE outview
+
+	BIND 1 TABLE inview
+  ROOT_CONST 2 DATA_TYPE uint8 SIZE 8 SERIES_FROM 0 INC_BY 4
+  UAV 3 buf
+RUN raygentab misstab hittab calltab
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidStatement
+
+  × Invalid DISPATCHRAYS statement
+   ╭─[1:1]
+ 1 │ DISPATCHRAYS rtpso
+   · ──────┬─────
+   ·       ╰── Declared here
+ 2 │     BIND 0 TABLE outview
+   ╰────
+   ╭─[7:36]
+ 6 │   UAV 3 buf
+ 7 │ RUN raygentab misstab hittab calltab
+   ·                                    ▲
+   ·                                    ╰── Invalid here
+   ╰────
+  help: Expected format: DISPATCHRAYS <pipeline> content... RUN <raygentab>
+        <misstab> <hittab> <calltab> <x> <y> <z>
+
+================================================================================
+DISPATCH
+================================================================================
+
+DISPATCH cspipe
+	BIND 0 TABLE outview
+
+	BIND 1 TABLE inview
+  ROOT_CONST 2 DATA_TYPE uint8 SIZE 8 SERIES_FROM 0 INC_BY 4
+  UAV 3 buf
+RUN 1 1 1
+
+--------------------------------------------------------------------------------
+
+[
+    Dispatch {
+        identifier: SpanObj {
+            content: "DISPATCH",
+            source_file: 0,
+            span: 0..8,
+        },
+        pipeline: SpanObj {
+            content: "cspipe",
+            source_file: 0,
+            span: 9..15,
+        },
+        root_val: UnresolvedRootVal {
+            binds: [
+                Bind {
+                    index: 0,
+                    view: SpanObj {
+                        content: "outview",
+                        source_file: 0,
+                        span: 30..37,
+                    },
+                },
+                Bind {
+                    index: 1,
+                    view: SpanObj {
+                        content: "inview",
+                        source_file: 0,
+                        span: 53..59,
+                    },
+                },
+            ],
+            consts: [
+                UnresolvedRootValConst {
+                    index: 2,
+                    content: Resolved(
+                        Typed {
+                            typ: U8,
+                            element_count: 8,
+                            fill: Series {
+                                from: U8(
+                                    0,
+                                ),
+                                increment: U8(
+                                    4,
+                                ),
+                            },
+                        },
+                    ),
+                },
+            ],
+            views: [
+                RootValView {
+                    index: 3,
+                    typ: Some(
+                        Uav,
+                    ),
+                    buffer: SpanObj {
+                        content: "buf",
+                        source_file: 0,
+                        span: 129..132,
+                    },
+                },
+            ],
+        },
+        root_sig: None,
+        typ: Dispatch {
+            dimensions: Dim3(
+                [
+                    1,
+                    1,
+                    1,
+                ],
+            ),
+        },
+    },
+]
+
+================================================================================
+LIB
+================================================================================
+
+LIB obj src lib_6_4
+
+--------------------------------------------------------------------------------
+
+[
+    Object {
+        name: SpanObj {
+            content: "obj",
+            source_file: 0,
+            span: 4..7,
+        },
+        source: SpanObj {
+            content: "src",
+            source_file: 0,
+            span: 8..11,
+        },
+        shader_model: "lib_6_4",
+        entrypoint: None,
+        args: [],
+    },
+]
+
+================================================================================
+LIB from DXIL
+================================================================================
+
+LIB obj
+dxil goes here
+END
+
+--------------------------------------------------------------------------------
+
+[
+    ObjectDxil {
+        name: SpanObj {
+            content: "obj",
+            source_file: 0,
+            span: 4..7,
+        },
+        content: "dxil goes here",
+    },
+]
+
+================================================================================
+PSO
+================================================================================
+
+# Create an empty collection
+COLLECTION col
+END
+
+COLLECTION col2
+    LIB obj
+    CONFIG local_dep_on_external external_dep_on_local
+END
+
+RTPSO pso1 ADDTO pso
+    LIB obj EXPORTS abc def=\01def \01?exportedComplete@@YAMH@Z
+    LIB obj2 EXPORTS abc "\01es\"caped"="\02str\"ing" # comment
+    CONFIG local_dep_on_external external_dep_on_local
+  COLLECTION col2
+  HIT_GROUP hitgroup anyhit closesthit intersection
+  HIT_GROUP hitgroup anyhit closesthit -   # Triangles
+END
+
+--------------------------------------------------------------------------------
+
+[
+    PipelineStateObject {
+        name: SpanObj {
+            content: "col",
+            source_file: 0,
+            span: 40..43,
+        },
+        typ: Collection,
+        add_to: None,
+        libs: [],
+        collections: [],
+        hit_groups: [],
+        config: StateObjectConfig(
+            0x0,
+        ),
+    },
+    PipelineStateObject {
+        name: SpanObj {
+            content: "col2",
+            source_file: 0,
+            span: 60..64,
+        },
+        typ: Collection,
+        add_to: None,
+        libs: [
+            LinkObject {
+                name: SpanObj {
+                    content: "obj",
+                    source_file: 0,
+                    span: 73..76,
+                },
+                exports: [],
+            },
+        ],
+        collections: [],
+        hit_groups: [],
+        config: StateObjectConfig(
+            LOCAL_DEP_ON_EXTERNAL | EXTERNAL_DEP_ON_LOCAL,
+        ),
+    },
+    PipelineStateObject {
+        name: SpanObj {
+            content: "pso1",
+            source_file: 0,
+            span: 143..147,
+        },
+        typ: Pipeline,
+        add_to: Some(
+            SpanObj {
+                content: "pso",
+                source_file: 0,
+                span: 154..157,
+            },
+        ),
+        libs: [
+            LinkObject {
+                name: SpanObj {
+                    content: "obj",
+                    source_file: 0,
+                    span: 166..169,
+                },
+                exports: [
+                    Export {
+                        name: "abc",
+                        to_rename: None,
+                    },
+                    Export {
+                        name: "def",
+                        to_rename: Some(
+                            "\u{1}def",
+                        ),
+                    },
+                    Export {
+                        name: "\u{1}?exportedComplete@@YAMH@Z",
+                        to_rename: None,
+                    },
+                ],
+            },
+            LinkObject {
+                name: SpanObj {
+                    content: "obj2",
+                    source_file: 0,
+                    span: 230..234,
+                },
+                exports: [
+                    Export {
+                        name: "abc",
+                        to_rename: None,
+                    },
+                    Export {
+                        name: "\u{1}es\"caped",
+                        to_rename: Some(
+                            "\u{2}str\"ing",
+                        ),
+                    },
+                ],
+            },
+        ],
+        collections: [
+            LinkObject {
+                name: SpanObj {
+                    content: "col2",
+                    source_file: 0,
+                    span: 354..358,
+                },
+                exports: [],
+            },
+        ],
+        hit_groups: [
+            HitGroup {
+                name: SpanObj {
+                    content: "hitgroup",
+                    source_file: 0,
+                    span: 371..379,
+                },
+                shaders: [
+                    Some(
+                        SpanObj {
+                            content: "anyhit",
+                            source_file: 0,
+                            span: 380..386,
+                        },
+                    ),
+                    Some(
+                        SpanObj {
+                            content: "closesthit",
+                            source_file: 0,
+                            span: 387..397,
+                        },
+                    ),
+                    Some(
+                        SpanObj {
+                            content: "intersection",
+                            source_file: 0,
+                            span: 398..410,
+                        },
+                    ),
+                ],
+            },
+            HitGroup {
+                name: SpanObj {
+                    content: "hitgroup",
+                    source_file: 0,
+                    span: 423..431,
+                },
+                shaders: [
+                    Some(
+                        SpanObj {
+                            content: "anyhit",
+                            source_file: 0,
+                            span: 432..438,
+                        },
+                    ),
+                    Some(
+                        SpanObj {
+                            content: "closesthit",
+                            source_file: 0,
+                            span: 439..449,
+                        },
+                    ),
+                    None,
+                ],
+            },
+        ],
+        config: StateObjectConfig(
+            LOCAL_DEP_ON_EXTERNAL | EXTERNAL_DEP_ON_LOCAL,
+        ),
+    },
+]
+
+================================================================================
+ROOT_DXIL
+================================================================================
+
+ROOT_DXIL global_sig pso
+
+--------------------------------------------------------------------------------
+
+[
+    RootSigDxil {
+        name: SpanObj {
+            content: "global_sig",
+            source_file: 0,
+            span: 10..20,
+        },
+        object: SpanObj {
+            content: "pso",
+            source_file: 0,
+            span: 21..24,
+        },
+    },
+]
+
+================================================================================
+BLAS
+================================================================================
+
+BLAS blas
+  CONFIG prefer_fast_build prefer_fast_trace allow_compaction allow_update minimize_memory
+  GEOMETRY PROCEDURAL
+    CONFIG no_duplicate_anyhit opaque
+    AABB 0 0 0 1 1 1
+  END
+
+  GEOMETRY TRIANGLE
+    TRANSFORM
+      1 0 0 0
+      0 1 0 0
+      0 0 1 0
+    END
+    VERTEX 1 0 0
+    VERTEX 1 1 0
+    VERTEX 0 1 0
+  END
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Blas {
+        name: SpanObj {
+            content: "blas",
+            source_file: 0,
+            span: 5..9,
+        },
+        procedurals: [
+            ProceduralGeometry {
+                aabbs: [
+                    Aabb {
+                        min: Vertex(
+                            [
+                                0.0,
+                                0.0,
+                                0.0,
+                            ],
+                        ),
+                        max: Vertex(
+                            [
+                                1.0,
+                                1.0,
+                                1.0,
+                            ],
+                        ),
+                    },
+                ],
+                config: GeometryConfig(
+                    OPAQUE | NO_DUPLICATE_ANYHIT,
+                ),
+            },
+        ],
+        triangles: [
+            TriangleGeometry {
+                vertices: [
+                    Vertex(
+                        [
+                            1.0,
+                            0.0,
+                            0.0,
+                        ],
+                    ),
+                    Vertex(
+                        [
+                            1.0,
+                            1.0,
+                            0.0,
+                        ],
+                    ),
+                    Vertex(
+                        [
+                            0.0,
+                            1.0,
+                            0.0,
+                        ],
+                    ),
+                ],
+                transform: Some(
+                    Transform(
+                        [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                        ],
+                    ),
+                ),
+                config: GeometryConfig(
+                    0x0,
+                ),
+            },
+        ],
+        config: AccelStructConfig(
+            ALLOW_UPDATE | ALLOW_COMPACTION | PREFER_FAST_TRACE | PREFER_FAST_BUILD | MINIMIZE_MEMORY,
+        ),
+    },
+]
+
+================================================================================
+TLAS
+================================================================================
+
+TLAS tlas
+  CONFIG prefer_fast_build prefer_fast_trace allow_compaction allow_update minimize_memory
+  BLAS blas -
+  BLAS blas
+    ID 5
+    MASK 8
+    HIT_GROUP_INDEX_CONTRIBUTION 16
+    CONFIG triangle_cull_disable triangle_front_counterclockwise force_opaque force_non_opaque
+    TRANSFORM
+      1 0 0 0
+      0 1 0 0
+      0 0 1 0
+    END
+  END
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Tlas {
+        name: SpanObj {
+            content: "tlas",
+            source_file: 0,
+            span: 5..9,
+        },
+        blas: [
+            TlasBlas {
+                name: SpanObj {
+                    content: "blas",
+                    source_file: 0,
+                    span: 108..112,
+                },
+                id: None,
+                mask: None,
+                index_contrib: None,
+                transform: None,
+                config: TlasBlasConfig(
+                    0x0,
+                ),
+            },
+            TlasBlas {
+                name: SpanObj {
+                    content: "blas",
+                    source_file: 0,
+                    span: 122..126,
+                },
+                id: Some(
+                    5,
+                ),
+                mask: Some(
+                    8,
+                ),
+                index_contrib: Some(
+                    16,
+                ),
+                transform: Some(
+                    Transform(
+                        [
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0,
+                            0.0,
+                        ],
+                    ),
+                ),
+                config: TlasBlasConfig(
+                    TRIANGLE_CULL_DISABLE | TRIANGLE_FRONT_COUNTERCLOCKWISE | FORCE_OPAQUE | FORCE_NON_OPAQUE,
+                ),
+            },
+        ],
+        config: AccelStructConfig(
+            ALLOW_UPDATE | ALLOW_COMPACTION | PREFER_FAST_TRACE | PREFER_FAST_BUILD | MINIMIZE_MEMORY,
+        ),
+    },
+]
+
+================================================================================
+SHADERID
+================================================================================
+
+SHADERID raygen_id pso RayGen
+SHADERID raygen_id2 pso "\01RayGen"
+
+--------------------------------------------------------------------------------
+
+[
+    ShaderId {
+        name: SpanObj {
+            content: "raygen_id",
+            source_file: 0,
+            span: 9..18,
+        },
+        pipeline_state_object: SpanObj {
+            content: "pso",
+            source_file: 0,
+            span: 19..22,
+        },
+        shader_name: SpanObj {
+            content: "RayGen",
+            source_file: 0,
+            span: 23..29,
+        },
+    },
+    ShaderId {
+        name: SpanObj {
+            content: "raygen_id2",
+            source_file: 0,
+            span: 39..49,
+        },
+        pipeline_state_object: SpanObj {
+            content: "pso",
+            source_file: 0,
+            span: 50..53,
+        },
+        shader_name: SpanObj {
+            content: "\u{1}RayGen",
+            source_file: 0,
+            span: 54..65,
+        },
+    },
+]
+
+================================================================================
+SHADERTABLE
+================================================================================
+
+SHADERTABLE raygen rtpso
+  RECORD 0 RayGen -
+  RECORD 0 "\01RayGen" -
+  RECORD 0
+    TABLE t
+    GPUVA va
+    SHADERID i
+  END
+  RECORD 0 shader
+    TABLE t
+  END
+END
+
+--------------------------------------------------------------------------------
+
+[
+    ShaderTable {
+        name: SpanObj {
+            content: "raygen",
+            source_file: 0,
+            span: 12..18,
+        },
+        pipeline_state_object: SpanObj {
+            content: "rtpso",
+            source_file: 0,
+            span: 19..24,
+        },
+        records: [
+            UnresolvedShaderTableRecord {
+                index: 0,
+                shader: Name(
+                    SpanObj {
+                        content: "RayGen",
+                        source_file: 0,
+                        span: 36..42,
+                    },
+                ),
+                root_val: UnresolvedRootVal {
+                    binds: [],
+                    consts: [],
+                    views: [],
+                },
+            },
+            UnresolvedShaderTableRecord {
+                index: 0,
+                shader: Name(
+                    SpanObj {
+                        content: "\u{1}RayGen",
+                        source_file: 0,
+                        span: 56..67,
+                    },
+                ),
+                root_val: UnresolvedRootVal {
+                    binds: [],
+                    consts: [],
+                    views: [],
+                },
+            },
+            UnresolvedShaderTableRecord {
+                index: 0,
+                shader: ShaderId(
+                    SpanObj {
+                        content: "i",
+                        source_file: 0,
+                        span: 119..120,
+                    },
+                ),
+                root_val: UnresolvedRootVal {
+                    binds: [
+                        Bind {
+                            index: 0,
+                            view: SpanObj {
+                                content: "t",
+                                source_file: 0,
+                                span: 91..92,
+                            },
+                        },
+                    ],
+                    consts: [],
+                    views: [
+                        RootValView {
+                            index: 1,
+                            typ: None,
+                            buffer: SpanObj {
+                                content: "va",
+                                source_file: 0,
+                                span: 103..105,
+                            },
+                        },
+                    ],
+                },
+            },
+            UnresolvedShaderTableRecord {
+                index: 0,
+                shader: Name(
+                    SpanObj {
+                        content: "shader",
+                        source_file: 0,
+                        span: 138..144,
+                    },
+                ),
+                root_val: UnresolvedRootVal {
+                    binds: [
+                        Bind {
+                            index: 0,
+                            view: SpanObj {
+                                content: "t",
+                                source_file: 0,
+                                span: 155..156,
+                            },
+                        },
+                    ],
+                    consts: [],
+                    views: [],
+                },
+            },
+        ],
+    },
+]
+
+================================================================================
+SHADERTABLE invalid
+================================================================================
+
+SHADERTABLE raygen rtpso
+  RECORD 0 RayGen -
+  SHADERID i
+END
+
+--------------------------------------------------------------------------------
+
+smoldr::parser::InvalidStatement
+
+  × Invalid SHADERTABLE statement
+   ╭─[1:1]
+ 1 │ SHADERTABLE raygen rtpso
+   · ─────┬─────
+   ·      ╰── Declared here
+ 2 │   RECORD 0 RayGen -
+ 3 │   SHADERID i
+   ·   ▲
+   ·   ╰── Invalid here
+ 4 │ END
+   ╰────
+  help: Expected format: SHADERTABLE <name> <state_object> content... END
+
+================================================================================
+INCLUDE
+================================================================================
+
+INCLUDE ../file.sm
+
+--------------------------------------------------------------------------------
+
+[
+    Include {
+        identifier: SpanObj {
+            content: "INCLUDE",
+            source_file: 0,
+            span: 0..7,
+        },
+        path: SpanObj {
+            content: "../file.sm",
+            source_file: 0,
+            span: 8..18,
+        },
+    },
+]
+
+================================================================================
+DUMP
+================================================================================
+
+DUMP buf float
+DUMP lib DXIL
+DUMP buf float PRINT_STRIDE 8 EXPECT
+
+--------------------------------------------------------------------------------
+
+[
+    Dump {
+        identifier: SpanObj {
+            content: "DUMP",
+            source_file: 0,
+            span: 0..4,
+        },
+        resource: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 5..8,
+        },
+        typ: DataType(
+            F32,
+        ),
+        print_stride: None,
+        format: List,
+    },
+    Dump {
+        identifier: SpanObj {
+            content: "DUMP",
+            source_file: 0,
+            span: 15..19,
+        },
+        resource: SpanObj {
+            content: "lib",
+            source_file: 0,
+            span: 20..23,
+        },
+        typ: Dxil,
+        print_stride: None,
+        format: List,
+    },
+    Dump {
+        identifier: SpanObj {
+            content: "DUMP",
+            source_file: 0,
+            span: 29..33,
+        },
+        resource: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 34..37,
+        },
+        typ: DataType(
+            F32,
+        ),
+        print_stride: Some(
+            8,
+        ),
+        format: Expect,
+    },
+]
+
+================================================================================
+EXPECT
+================================================================================
+
+EXPECT buf float OFFSET 0 EQ 10.25 11.5
+EXPECT buf float EPSILON 0.1 OFFSET 0 EQ 10.25 11.5
+
+--------------------------------------------------------------------------------
+
+[
+    Expect {
+        identifier: SpanObj {
+            content: "EXPECT",
+            source_file: 0,
+            span: 0..6,
+        },
+        resource: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 7..10,
+        },
+        epsilon: None,
+        offset: SpanObj {
+            content: 0,
+            source_file: 0,
+            span: 24..25,
+        },
+        values: UnresolvedValues {
+            data: [
+                Resolved(
+                    F32(
+                        10.25,
+                    ),
+                ),
+                Resolved(
+                    F32(
+                        11.5,
+                    ),
+                ),
+            ],
+        },
+        value_spans: [
+            SpanObj {
+                content: "10.25",
+                source_file: 0,
+                span: 29..34,
+            },
+            SpanObj {
+                content: "11.5",
+                source_file: 0,
+                span: 35..39,
+            },
+        ],
+    },
+    Expect {
+        identifier: SpanObj {
+            content: "EXPECT",
+            source_file: 0,
+            span: 40..46,
+        },
+        resource: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 47..50,
+        },
+        epsilon: Some(
+            SpanObj {
+                content: F32(
+                    0.1,
+                ),
+                source_file: 0,
+                span: 65..68,
+            },
+        ),
+        offset: SpanObj {
+            content: 0,
+            source_file: 0,
+            span: 76..77,
+        },
+        values: UnresolvedValues {
+            data: [
+                Resolved(
+                    F32(
+                        10.25,
+                    ),
+                ),
+                Resolved(
+                    F32(
+                        11.5,
+                    ),
+                ),
+            ],
+        },
+        value_spans: [
+            SpanObj {
+                content: "10.25",
+                source_file: 0,
+                span: 81..86,
+            },
+            SpanObj {
+                content: "11.5",
+                source_file: 0,
+                span: 87..91,
+            },
+        ],
+    },
+]
+
+================================================================================
+SLEEP
+================================================================================
+
+SLEEP 5s
+
+--------------------------------------------------------------------------------
+
+[
+    Sleep {
+        identifier: SpanObj {
+            content: "SLEEP",
+            source_file: 0,
+            span: 0..5,
+        },
+        duration: SpanObj {
+            content: 5s,
+            source_file: 0,
+            span: 6..8,
+        },
+    },
+]
+
+================================================================================
+SLEEP_MULTI
+================================================================================
+
+SLEEP 5s 10ms
+
+--------------------------------------------------------------------------------
+
+[
+    Sleep {
+        identifier: SpanObj {
+            content: "SLEEP",
+            source_file: 0,
+            span: 0..5,
+        },
+        duration: SpanObj {
+            content: 5.01s,
+            source_file: 0,
+            span: 6..13,
+        },
+    },
+]
+
+================================================================================
+ASSERT_SHADERID
+================================================================================
+
+ASSERT SHADERID EQ id_a id_b
+ASSERT SHADERID NE id_a id_b
+
+--------------------------------------------------------------------------------
+
+[
+    AssertShaderId {
+        identifier: SpanObj {
+            content: "ASSERT",
+            source_file: 0,
+            span: 0..6,
+        },
+        equal: true,
+        id_a: SpanObj {
+            content: "id_a",
+            source_file: 0,
+            span: 19..23,
+        },
+        id_b: SpanObj {
+            content: "id_b",
+            source_file: 0,
+            span: 24..28,
+        },
+    },
+    AssertShaderId {
+        identifier: SpanObj {
+            content: "ASSERT",
+            source_file: 0,
+            span: 29..35,
+        },
+        equal: false,
+        id_a: SpanObj {
+            content: "id_a",
+            source_file: 0,
+            span: 48..52,
+        },
+        id_b: SpanObj {
+            content: "id_b",
+            source_file: 0,
+            span: 53..57,
+        },
+    },
+]
+
+================================================================================
+EXECUTE_INDIRECT
+================================================================================
+
+COMMAND_SIGNATURE sig STRIDE 4 ROOT_SIG root
+  SRV REGISTER 1
+  UAV REGISTER 2
+  ROOT_CONST NUMBER 3 REGISTER 3 OFFSET 8
+  DISPATCH
+
+  SRV REGISTER 1
+  UAV REGISTER 2
+  ROOT_CONST NUMBER 3 REGISTER 3 OFFSET 8
+  DISPATCHRAYS
+END
+
+# Dispatch
+EXECUTE_INDIRECT pipeline SIGNATURE sig
+  ROOT_SIG basic_global_root
+  BIND 0 TABLE outview
+  BIND 1 TABLE asview
+  ROOT_CONST 2 RAW 4
+    uint32 8
+  END
+RUN arg_buffer OFFSET 4 MAX_COMMANDS 1 COUNT count_buffer COUNT_OFFSET 0
+
+--------------------------------------------------------------------------------
+
+[
+    CommandSignature {
+        name: SpanObj {
+            content: "sig",
+            source_file: 0,
+            span: 18..21,
+        },
+        stride: Some(
+            4,
+        ),
+        arguments: [
+            View {
+                typ: Srv,
+                index: 1,
+            },
+            View {
+                typ: Uav,
+                index: 2,
+            },
+            Constant {
+                index: 3,
+                number: 3,
+                offset: 8,
+            },
+            Dispatch,
+            View {
+                typ: Srv,
+                index: 1,
+            },
+            View {
+                typ: Uav,
+                index: 2,
+            },
+            Constant {
+                index: 3,
+                number: 3,
+                offset: 8,
+            },
+            DispatchRays,
+        ],
+        root_sig: Some(
+            SpanObj {
+                content: "root",
+                source_file: 0,
+                span: 40..44,
+            },
+        ),
+    },
+    Dispatch {
+        identifier: SpanObj {
+            content: "EXECUTE_INDIRECT",
+            source_file: 0,
+            span: 240..256,
+        },
+        pipeline: SpanObj {
+            content: "pipeline",
+            source_file: 0,
+            span: 257..265,
+        },
+        root_val: UnresolvedRootVal {
+            binds: [
+                Bind {
+                    index: 0,
+                    view: SpanObj {
+                        content: "outview",
+                        source_file: 0,
+                        span: 324..331,
+                    },
+                },
+                Bind {
+                    index: 1,
+                    view: SpanObj {
+                        content: "asview",
+                        source_file: 0,
+                        span: 347..353,
+                    },
+                },
+            ],
+            consts: [
+                UnresolvedRootValConst {
+                    index: 2,
+                    content: Raw {
+                        values: UnresolvedValues {
+                            data: [
+                                Resolved(
+                                    U32(
+                                        8,
+                                    ),
+                                ),
+                            ],
+                        },
+                    },
+                },
+            ],
+            views: [],
+        },
+        root_sig: Some(
+            SpanObj {
+                content: "basic_global_root",
+                source_file: 0,
+                span: 291..308,
+            },
+        ),
+        typ: ExecuteIndirect {
+            signature: SpanObj {
+                content: "sig",
+                source_file: 0,
+                span: 276..279,
+            },
+            argument_buffer: SpanObj {
+                content: "arg_buffer",
+                source_file: 0,
+                span: 398..408,
+            },
+            argument_offset: Some(
+                4,
+            ),
+            count_buffer: Some(
+                SpanObj {
+                    content: "count_buffer",
+                    source_file: 0,
+                    span: 439..451,
+                },
+            ),
+            count_offset: Some(
+                0,
+            ),
+            max_commands: 1,
+        },
+    },
+]
+
+================================================================================
+GPUVA
+================================================================================
+
+BUFFER buf RAW 8
+  GPUVA buf
+END
+
+--------------------------------------------------------------------------------
+
+[
+    Buffer {
+        name: SpanObj {
+            content: "buf",
+            source_file: 0,
+            span: 7..10,
+        },
+        content: Raw {
+            values: UnresolvedValues {
+                data: [
+                    Gpuva(
+                        SpanObj {
+                            content: "buf",
+                            source_file: 0,
+                            span: 25..28,
+                        },
+                    ),
+                ],
+            },
+        },
+    },
+]

@@ -1,0 +1,79 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+SOURCE rtshader
+ByteAddressBuffer   inbuf  : register(t0); // SRV
+RWByteAddressBuffer outbuf : register(u0); // UAV
+
+struct MyParams {
+  uint offset;
+  float loaded;
+};
+
+[shader("raygeneration")]
+void RayGen() {
+  uint2 dims = DispatchRaysDimensions().xy;
+  uint2 index = DispatchRaysIndex().xy;
+  MyParams params;
+  params.offset = (index.y * dims.x + index.x) * 4;
+  CallShader(0, params);
+  outbuf.Store<float>(params.offset, params.loaded + .01);
+}
+
+[shader("callable")]
+void Called(inout MyParams params) {
+  params.loaded = inbuf.Load<float>(params.offset);
+}
+
+GlobalRootSignature root =
+{
+    "DescriptorTable(UAV(u0))," // Output
+    "DescriptorTable(SRV(t0))"  // inputs
+};
+
+RaytracingShaderConfig  shader_config = {
+  16, // max payload size
+  8   // max attribute size
+};
+
+SubobjectToExportsAssociation my_association_name = {"shader_config","RayGen;Called"};
+
+RaytracingPipelineConfig MyPipelineConfig = {
+  1  // Max trace recursion depth
+};
+
+END
+
+LIB rtobj rtshader lib_6_4
+
+BUFFER inbuf DATA_TYPE float SIZE 64 SERIES_FROM 0 INC_BY .25
+BUFFER outbuf DATA_TYPE float SIZE 32 FILL 0
+
+RTPSO rtpso
+  LIB rtobj
+END
+
+VIEW inview inbuf AS SRV
+VIEW outview outbuf AS UAV
+
+SHADERTABLE raygen rtpso
+  RECORD 0 RayGen -
+END
+
+SHADERTABLE callable rtpso
+  RECORD 0 Called -
+END
+
+ROOT_DXIL global_sig rtobj
+
+DISPATCHRAYS rtpso
+  ROOT_SIG global_sig
+  BIND 0 TABLE outview
+  BIND 1 TABLE inview
+RUN raygen - - callable 32 2 1
+
+EXPECT outbuf float OFFSET 0 EQ 0.01 0.26 0.51 0.76 1.01 1.26 1.51 1.76
+EXPECT outbuf float OFFSET 32 EQ 2.01 2.26 2.51 2.76 3.01 3.26 3.51 3.76
+EXPECT outbuf float OFFSET 64 EQ 4.01 4.26 4.51 4.76 5.01 5.26 5.51 5.76
+EXPECT outbuf float OFFSET 96 EQ 6.01 6.26 6.51 6.76 7.01 7.26 7.51 7.76
