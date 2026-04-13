@@ -1,0 +1,61 @@
+name: Build and test
+on: [pull_request, push]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - uses: nixbuild/nix-quick-install-action@v34
+      with:
+        nix_conf: |
+          keep-env-derivations = true
+          keep-outputs = true
+
+    - name: Restore and save Nix store
+      uses: nix-community/cache-nix-action@v7
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
+        purge: true
+        # purge all versions of the cache
+        purge-prefixes: build-${{ runner.os }}-
+        # created more than 10 seconds ago relative to the start of the `Post Restore` phase
+        purge-created: PT10S
+        # except the version with the `primary-key`, if it exists
+        purge-primary-key: never
+        # and collect garbage in the Nix store until it reaches this size in bytes
+        gc-max-store-size: 0
+
+    - name: Check
+      run: |
+        nix flake check -L
+
+    - name: Package
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      run: |
+        commit_short="$(git rev-parse --short HEAD)"
+        date="$(date -I)"
+
+        # Create package
+        nix build .#mingw-release -L
+        cp result/smoldr.zip "smoldr_${date}_${GITHUB_RUN_ID}_${commit_short}.zip"
+
+        # Create agility SDK package
+        nix build .#mingw-agility-release -L
+        cp result/smoldr.zip "smoldr-agility_${date}_${GITHUB_RUN_ID}_${commit_short}.zip"
+
+    - uses: actions/upload-artifact@v7
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      with:
+        path: smoldr_*.zip
+        if-no-files-found: error
+        archive: false
+
+    - uses: actions/upload-artifact@v7
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      with:
+        path: smoldr-agility_*.zip
+        if-no-files-found: error
+        archive: false
