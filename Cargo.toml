@@ -40,7 +40,7 @@ tempfile = "3"
 thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [ "env-filter" ] }
-winnow = "0.7"
+winnow = { version = "1", features = [ "ascii" ] }
 
 [dependencies.windows]
 version = "0.62.0"

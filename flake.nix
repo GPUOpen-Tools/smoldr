@@ -47,24 +47,24 @@
         };
         lib = pkgs.lib;
 
-        dxcVersion = "1.8.2505";
-        dxcDate = "2025_05_24";
+        dxcVersion = "1.10.2605.2";
+        dxcDate = "preview_2026_04_22";
         dxc = pkgs.fetchurl {
           url = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v${dxcVersion}/dxc_${dxcDate}.zip";
-          hash = "sha256-gTgPPsoVbZAtZAT9bfn0sIhvV2/z4YsswQ0wdf/J0Rk=";
+          hash = "sha256-mX6rYIgABYezqDOTMgVclyy1iYXEPKoVO5LMY7w3SGI=";
         };
 
-        agilitySdkVersion = "1.717.1-preview";
+        agilitySdkVersion = "1.720.0-preview";
         agilityPkgName = "Microsoft.Direct3D.D3D12";
         agilitySdk = pkgs.fetchurl {
           url = "https://www.nuget.org/api/v2/package/${agilityPkgName}/${agilitySdkVersion}";
-          hash = "sha256-8FLflDfH5HzbQo/7WXSB/lWkgMiWiwBWFZ/joZXCd+Q=";
+          hash = "sha256-ELc4lG/mfygOktvXDfT6cnLOyHoujoJM2elRjEQpb9o=";
         };
 
-        vkd3d-protonVersion = "2.10";
+        vkd3d-protonVersion = "3.0b";
         vkd3d-proton = pkgs.fetchurl {
           url = "https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v${vkd3d-protonVersion}/vkd3d-proton-${vkd3d-protonVersion}.tar.zst";
-          hash = "sha256-8dzVdOFqre7uK3QENKr6PWiRpnxBhp6nubenHPs+7bU=";
+          hash = "sha256-oh9eURBjt/6AEjkQ8bVPdVQfLt/vcQbEYSk/CJgumtI=";
         };
 
         native-toolchain = with fenix.packages.${system}; combine [
@@ -101,12 +101,17 @@
           # Build with mingw
           depsBuildBuild = with pkgs; [
             pkgsCross.mingwW64.stdenv.cc
+          ];
+
+          buildInputs = with pkgs; [
             pkgsCross.mingwW64.windows.pthreads
           ];
+          # See https://github.com/nix-community/naersk/issues/371
+          RUSTFLAGS = defaultBuildArgs.RUSTFLAGS ++ [ "-L native=${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib" ];
 
           nativeCheckInputs = with pkgs; [
             # We need Wine to run tests:
-            wineWowPackages.stable
+            wineWow64Packages.stable
           ];
 
           # Maybe with proton and sway virtual screen
@@ -126,7 +131,7 @@
           # (https://doc.rust-lang.org/cargo/reference/config.html#targettriplerunner)
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER = pkgs.writeShellScript "wine-wrapper" ''
             export WINEPREFIX="$(mktemp -d)"
-            exec wine64 "$@"
+            exec wine "$@"
           '';
 
           overrideMain = oldAttrs: oldAttrs // {
@@ -191,7 +196,6 @@
           };
         });
 
-        # TODO Extract vkd3d-proton in temporary directory
         app-win-drv = pkgs.writeShellScriptBin "smoldr" ''
           set -euo pipefail
 
@@ -199,9 +203,9 @@
           export WINEPREFIX="$(mktemp -d)"
           cleanup() {
             # Shutdown wine
-            ${pkgs.wineWowPackages.stable}/bin/wineboot -s
+            ${pkgs.wineWow64Packages.stable}/bin/wineboot -s
             # Wait until finished
-            ${pkgs.wineWowPackages.stable}/bin/wineserver -w
+            ${pkgs.wineWow64Packages.stable}/bin/wineserver -w
             # Remove prefix
             rm -rf "$WINEPREFIX"
           }
@@ -209,19 +213,24 @@
 
           # Disable "install wine-mono" dialogue
           export WINEDLLOVERRIDES="mscoree="
-          ${pkgs.wineWowPackages.stable}/bin/wineboot -i
+          ${pkgs.wineWow64Packages.stable}/bin/wineboot -i
           # Wait until ready
-          ${pkgs.wineWowPackages.stable}/bin/wineserver -w
+          ${pkgs.wineWow64Packages.stable}/bin/wineserver -w
 
           # Install dx12
+          # Extract vkd3d-proton in temporary directory
+          pushd "$WINEPREFIX"
           PATH="${pkgs.zstd}/bin:$PATH" ${pkgs.gnutar}/bin/tar xf ${vkd3d-proton}
-          PATH="${pkgs.wineWowPackages.stable}/bin:$PATH" ${pkgs.runtimeShell} vkd3d-proton-${vkd3d-protonVersion}/setup_vkd3d_proton.sh install
+          echo Installing vkd3d-proton
+          export wine="${pkgs.wineWow64Packages.stable}/bin/wine"
+          PATH="${pkgs.wineWow64Packages.stable}/bin:$PATH" ${pkgs.runtimeShell} vkd3d-proton-${vkd3d-protonVersion}/setup_vkd3d_proton.sh install
+          popd
           echo Wine prefix is ready
           echo
 
-          ${pkgs.wineWowPackages.stable}/bin/wine64 ${package-win}/bin/smoldr.exe "$@"
+          ${pkgs.wineWow64Packages.stable}/bin/wine ${package-win}/bin/smoldr.exe "$@"
           # Wait until finished
-          ${pkgs.wineWowPackages.stable}/bin/wineserver -w
+          ${pkgs.wineWow64Packages.stable}/bin/wineserver -w
         '';
         app-win = flake-utils.lib.mkApp {
           name = "smoldr";
@@ -260,6 +269,8 @@
         checks.mingw-release = packages.mingw-release;
         checks.mingw-agility-release = packages.mingw-agility-release;
         checks.mingw-help = pkgs.runCommand "check-help" {} ''
+          export HOME=$(mktemp -d)
+          export XDG_RUNTIME_DIR=$(mktemp -d)
           ${app-win-drv}/bin/smoldr --help
           mkdir -p $out
         '';

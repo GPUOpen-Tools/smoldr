@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+// Ignore somewhat false positives with winnow macros
+#![allow(clippy::precedence)]
+
 use std::num::{NonZero, NonZeroU64};
 use std::ops::{Range, RangeInclusive};
 use std::{fmt, mem};
