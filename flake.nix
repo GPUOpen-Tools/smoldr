@@ -47,24 +47,24 @@
         };
         lib = pkgs.lib;
 
-        dxcVersion = "1.10.2605.2";
-        dxcDate = "preview_2026_04_22";
+        dxcVersion = "1.10.2605.24";
+        dxcDate = "preview_2026_05_22";
         dxc = pkgs.fetchurl {
           url = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v${dxcVersion}/dxc_${dxcDate}.zip";
-          hash = "sha256-mX6rYIgABYezqDOTMgVclyy1iYXEPKoVO5LMY7w3SGI=";
+          hash = "sha256-BF4s/ZABNfZAlUVTA4/rvJhpJZnFYGN2cm0AVB2uabY=";
         };
 
-        agilitySdkVersion = "1.720.0-preview";
+        agilitySdkVersion = "1.721.1-preview";
         agilityPkgName = "Microsoft.Direct3D.D3D12";
         agilitySdk = pkgs.fetchurl {
           url = "https://www.nuget.org/api/v2/package/${agilityPkgName}/${agilitySdkVersion}";
-          hash = "sha256-ELc4lG/mfygOktvXDfT6cnLOyHoujoJM2elRjEQpb9o=";
+          hash = "sha256-bWA4thXoLxUPT0SXkeszrHS9uXq6nurHDrn7Y8shpVM=";
         };
 
-        vkd3d-protonVersion = "3.0b";
+        vkd3d-protonVersion = "3.0.1";
         vkd3d-proton = pkgs.fetchurl {
           url = "https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v${vkd3d-protonVersion}/vkd3d-proton-${vkd3d-protonVersion}.tar.zst";
-          hash = "sha256-oh9eURBjt/6AEjkQ8bVPdVQfLt/vcQbEYSk/CJgumtI=";
+          hash = "sha256-PPIxVSKvXkNgXvbTxB2tkThwQL+XGZk08/erdsqqLww=";
         };
 
         native-toolchain = with fenix.packages.${system}; combine [
