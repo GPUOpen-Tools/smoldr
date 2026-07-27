@@ -54,10 +54,12 @@
           hash = "sha256-BF4s/ZABNfZAlUVTA4/rvJhpJZnFYGN2cm0AVB2uabY=";
         };
 
-        agilitySdkVersion = "1.721.1-preview";
+        # The version passed to both, the download and the build
+        agilitySdkVersion = "721";
+        agilitySdkVersionString = "1.${agilitySdkVersion}.1-preview";
         agilityPkgName = "Microsoft.Direct3D.D3D12";
         agilitySdk = pkgs.fetchurl {
-          url = "https://www.nuget.org/api/v2/package/${agilityPkgName}/${agilitySdkVersion}";
+          url = "https://www.nuget.org/api/v2/package/${agilityPkgName}/${agilitySdkVersionString}";
           hash = "sha256-bWA4thXoLxUPT0SXkeszrHS9uXq6nurHDrn7Y8shpVM=";
         };
 
@@ -173,7 +175,7 @@
 
         package-win-agility = naersk-lib-win.buildPackage (lib.recursiveUpdate winBuildArgs {
           overrideMain = oldAttrs: oldAttrs // {
-            D3D12SDK_VERSION = "717";
+            D3D12SDK_VERSION = agilitySdkVersion;
             preConfigure = ''
               cargo_build_options="$cargo_build_options --features agility_sdk"
             '';
