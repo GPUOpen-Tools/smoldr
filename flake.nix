@@ -56,11 +56,11 @@
 
         # The version passed to both, the download and the build
         agilitySdkVersion = "721";
-        agilitySdkVersionString = "1.${agilitySdkVersion}.1-preview";
+        agilitySdkVersionString = "1.${agilitySdkVersion}.3-preview";
         agilityPkgName = "Microsoft.Direct3D.D3D12";
         agilitySdk = pkgs.fetchurl {
           url = "https://www.nuget.org/api/v2/package/${agilityPkgName}/${agilitySdkVersionString}";
-          hash = "sha256-bWA4thXoLxUPT0SXkeszrHS9uXq6nurHDrn7Y8shpVM=";
+          hash = "sha256-ATG84eS6zj/AjAMBjCmgnt4lcLJjchxkSbDsdXYqsi0=";
         };
 
         vkd3d-protonVersion = "3.0.1";
