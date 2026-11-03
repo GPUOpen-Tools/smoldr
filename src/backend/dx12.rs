@@ -2425,6 +2425,9 @@ impl Backend for Dx12Backend {
                 },
             }
 
+            if let Some(heap) = &self.descriptor_heap {
+                cmds.SetDescriptorHeaps(&[Some(heap.clone())]);
+            }
             cmds.SetComputeRootSignature(root_sig.or(pipe_root_sig).map(|r| &self.root_sigs[&r]));
             if let Some(heap) = self.descriptor_heap.clone() {
                 cmds.SetDescriptorHeaps(&[Some(heap)]);

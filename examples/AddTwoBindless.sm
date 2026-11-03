@@ -1,0 +1,59 @@
+# Copyright (c) Advanced Micro Devices, Inc., or its affiliates.
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Create a HLSL source called csshader
+SOURCE csshader
+
+[numthreads(32, 1, 1)]
+void CSMain(uint3 DTid : SV_DispatchThreadID)
+{
+  ByteAddressBuffer inbuf0 = ResourceDescriptorHeap[0];
+  ByteAddressBuffer inbuf1 = ResourceDescriptorHeap[1];
+  RWByteAddressBuffer outbuf = ResourceDescriptorHeap[2];
+
+  // Take 2 numbers from first buffer, one from second, and sum them
+  unsigned int first_idx = DTid.x * 2;
+  float first = inbuf0.Load<float>(first_idx * 4) + inbuf0.Load<float>((first_idx + 1) * 4);
+  float sum = first + inbuf1.Load<float>(DTid.x * 4);
+  outbuf.Store<float>(DTid.x * 4, sum);
+}
+END
+
+# Compile the source with dxc into a binary called csobj
+OBJECT csobj csshader cs_6_6 CSMain
+
+# Allocate buffers in GPU memory for input and output
+BUFFER inbuf DATA_TYPE float SIZE 64 SERIES_FROM 0 INC_BY .25
+BUFFER inbuf2 DATA_TYPE float SIZE 32 SERIES_FROM 10.0 INC_BY .25
+BUFFER outbuf DATA_TYPE float SIZE 32 FILL 0
+
+# The root signature
+ROOT default
+  TABLE UAV REGISTER 0 NUMBER 1 SPACE 0
+  TABLE SRV REGISTER 0 NUMBER 2 SPACE 0
+  CONFIG cbv_srv_uav_heap_directly_indexed
+END
+
+# Create a compute pipeline called cspipe
+PIPELINE cspipe COMPUTE
+  ATTACH csobj
+  ROOT   default
+END
+
+# Create views that point to the complete buffers
+# The descriptor heap with these views is bound, so they are accessed as 0, 1 and 2
+VIEW inview inbuf AS SRV
+VIEW inview2 inbuf2 AS SRV
+VIEW outview outbuf AS UAV
+
+# Run the pipeline in a 1x1x1 dispatch
+DISPATCH cspipe
+RUN 1 1 1
+
+# Check that the shaders worked as expected
+EXPECT outbuf float OFFSET 0 EQ 10.25 11.5 12.75 14
+EXPECT outbuf float OFFSET 64 EQ 30.25 31.5 32.75 34
+
+# Use DUMP to see a buffer's content
+#DUMP outbuf float
