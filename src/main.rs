@@ -834,6 +834,13 @@ impl Value {
         }
 
         match (self, other, epsilon) {
+            (Self::U64(s), Self::U64(o), Self::U64(d)) => {
+                if s < o {
+                    (o - s) <= d
+                } else {
+                    (s - o) <= d
+                }
+            }
             (Self::U32(s), Self::U32(o), Self::U32(d)) => {
                 if s < o {
                     (o - s) <= d
